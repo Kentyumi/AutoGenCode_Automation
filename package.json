@@ -1,0 +1,35 @@
+{
+  "name": "autogencode_automation",
+  "version": "1.0.0",
+  "description": "This tool demonstrates an AI-powered automation framework that can: - Parse BDD test cases (Gherkin syntax) or other structured testcase formats - Automatically decide element locators using AI (Locator Brain) - Generate maintainable Page Object and Action Layer code - Execute tests directly or generate scripts for customer projects - Allow auto tester to review & approve generated code once",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kentyumi/AutoGenCode_Automation.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Kentyumi/AutoGenCode_Automation/issues"
+  },
+  "homepage": "https://github.com/Kentyumi/AutoGenCode_Automation#readme",
+  "devDependencies": {
+    "@types/jquery": "^3.5.33",
+    "@types/node": "^25.0.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@cucumber/gherkin": "^37.0.0",
+    "@cucumber/messages": "^31.0.1",
+    "@wdio/cli": "^9.21.1",
+    "@wdio/local-runner": "^9.21.0",
+    "@wdio/mocha-framework": "^9.21.0",
+    "webdriverio": "^9.21.0"
+  }
+}
