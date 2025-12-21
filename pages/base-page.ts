@@ -1,5 +1,7 @@
 import { smart$ } from '../locator-brain/smart-element';
-import type { Browser, ChainablePromiseElement } from 'webdriverio';
+import type { Browser } from 'webdriverio';
+import { recorder } from '../codegen/execution-recorder';
+import { getLocator } from '../locator-brain/registry';
 
 export class BasePage {
   protected browser: Browser;
@@ -8,35 +10,26 @@ export class BasePage {
     this.browser = browser;
   }
 
-  private async resolve(logicalName: string): Promise<ChainablePromiseElement> {
-    const elem = await smart$(this.browser, logicalName);
-
-    // 🔥 auto scroll
-    await elem.scrollIntoView();
-
-    // optional safety
-    await elem.waitForDisplayed({ timeout: 5000 });
-
-    return elem;
-  }
-
   async click(logicalName: string) {
-    const elem = await this.resolve(logicalName);
+    const elem = await smart$(this.browser, logicalName);
     await elem.click();
+
+    recorder.record({
+      action: 'click',
+      logicalName,
+      selector: getLocator(logicalName)!
+    });
   }
 
   async type(logicalName: string, value: string) {
-    const elem = await this.resolve(logicalName);
+    const elem = await smart$(this.browser, logicalName);
     await elem.setValue(value);
-  }
 
-  async getText(logicalName: string): Promise<string> {
-    const elem = await this.resolve(logicalName);
-    return elem.getText();
-  }
-
-  async isDisplayed(logicalName: string): Promise<boolean> {
-    const elem = await this.resolve(logicalName);
-    return elem.isDisplayed();
+    recorder.record({
+      action: 'type',
+      logicalName,
+      value,
+      selector: getLocator(logicalName)!
+    });
   }
 }
