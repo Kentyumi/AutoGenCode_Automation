@@ -1,3 +1,5 @@
 {
-  "submit_button": "#w3-logo"
+  "submit_button": "#w3-logo",
+  "firstname_input": "//a",
+  "username_input": "//a"
 }

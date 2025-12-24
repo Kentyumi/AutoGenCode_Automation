@@ -25,3 +25,11 @@ export interface LocatorDecision {
   chosen: LocatorCandidate; // the selected locator
   alternatives: LocatorCandidate[]; // remaining candidates
 }
+
+export interface LocatorMeta {
+  logicalName: string;
+  locator: string;
+  strategy: string;
+  score: number;
+  strength: 'STRONG' | 'OK' | 'WEAK';
+}

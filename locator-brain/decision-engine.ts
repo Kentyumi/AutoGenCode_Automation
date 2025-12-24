@@ -27,9 +27,7 @@ function cosineSim(a: number[], b: number[]): number {
  * decideLocator selects the best locator among candidates using simple AI-free scoring
  */
 export function decideLocator(
-  logicalName: string,
-  candidates: LocatorCandidate[]
-): LocatorDecision {
+logicalName: string, candidates: LocatorCandidate[], action: string): LocatorDecision {
 
   const logicalVec = stringToVector(logicalName);
 

@@ -1,28 +1,49 @@
-// locator-brain/registry.ts
-// Simple in-memory registry to cache resolved locators
-// Can be persisted later to JSON or DB
-
 import fs from 'fs';
 import path from 'path';
 
-const REGISTRY_PATH = path.resolve(__dirname, 'locator-registry.json');
+const REGISTRY_FILE = path.join(
+  process.cwd(),
+  'locator-registry.json'
+);
 
-let cache: Record<string, string> = {};
+let registry: Record<string, string> = {};
 
-/** Load registry from JSON file if exists */
+/* ---------------- load ---------------- */
+
 export function loadRegistry() {
-  if (fs.existsSync(REGISTRY_PATH)) {
-    cache = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf-8'));
+  if (fs.existsSync(REGISTRY_FILE)) {
+    registry = JSON.parse(fs.readFileSync(REGISTRY_FILE, 'utf-8'));
   }
 }
 
-/** Get cached locator */
+/* ---------------- read ---------------- */
+
 export function getLocator(logicalName: string): string | undefined {
-  return cache[logicalName];
+  return registry[logicalName];
 }
 
-/** Save locator to registry and persist to JSON */
+/* ---------------- write ---------------- */
+
 export function saveLocator(logicalName: string, selector: string) {
-  cache[logicalName] = selector;
-  fs.writeFileSync(REGISTRY_PATH, JSON.stringify(cache, null, 2));
+  registry[logicalName] = selector;
+  persist();
+}
+
+/* ---------------- delete (NEW) ---------------- */
+
+export function deleteLocator(logicalName: string) {
+  if (registry[logicalName]) {
+    delete registry[logicalName];
+    persist();
+  }
+}
+
+/* ---------------- persist ---------------- */
+
+function persist() {
+  fs.writeFileSync(
+    REGISTRY_FILE,
+    JSON.stringify(registry, null, 2),
+    'utf-8'
+  );
 }

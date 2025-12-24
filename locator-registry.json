@@ -1,0 +1,7 @@
+{
+  "username_input": "#username",
+  "password_input": "#password",
+  "login_button": "//button",
+  "submit_button": "#submit",
+  "full name": "#app"
+}
