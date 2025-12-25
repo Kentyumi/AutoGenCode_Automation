@@ -1,2 +1,2 @@
-export const BASE_URL = 'https://demoqa.com';
-export const TCS_DIR = './demo/herokuapp/testcases';
+export const BASE_URL = 'https://evms-portal-uat.azurewebsites.net';
+export const TCS_DIR = './demo/simplygo/testcases';

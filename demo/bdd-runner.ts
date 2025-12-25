@@ -1,13 +1,21 @@
+// demo/bdd-runner.ts
 import fs from 'fs';
 import path from 'path';
 import { remote, Browser, ChainablePromiseElement } from 'webdriverio';
-import { smart$ } from '../locator-brain/smart-element';
+import { smart$, ActionType } from '../locator-brain/smart-element';
 import { BASE_URL, TCS_DIR } from './democonfig';
 
 // ---------- Utility ----------
 function readTestCases(dir: string): string[] {
   const files = fs.readdirSync(dir).filter(f => f.endsWith('.feature'));
   return files.map(f => fs.readFileSync(path.join(dir, f), 'utf-8'));
+}
+
+function inferStepAction(line: string): ActionType | undefined {
+  if (/I type/.test(line)) return 'type';
+  if (/I click/.test(line)) return 'click';
+  if (/I should see/.test(line)) return 'assert';
+  return undefined;
 }
 
 // ---------- Runner ----------
@@ -29,54 +37,59 @@ async function run() {
       .filter(l => l && !l.startsWith('#'));
 
     for (const line of lines) {
-
-      // Given I open "/path"
-      if (line.startsWith('Given I open')) {
-        const match = line.match(/Given I open "(.+)"/);
-        if (match) {
-          const url = match[1];
-          await browser.url(url.startsWith('http') ? url : BASE_URL + url);
-          console.log(`[Runner] Opened ${url}`);
+      try {
+        // --- Open URL ---
+        if (/^Given I open/.test(line)) {
+          const match = line.match(/Given I open "(.+)"/);
+          if (match) {
+            const url = match[1];
+            await browser.url(url.startsWith('http') ? url : BASE_URL + url);
+            console.log(`[Runner] Opened ${url}`);
+          }
         }
-      }
 
-      // When / And I type "value" into "logical_name"
-      else if (line.match(/^(When|And) I type /)) {
-        const match = line.match(/I type "(.+)" into "(.+)"/);
-        if (match) {
-          const [, value, logicalName] = match;
-          const elem: ChainablePromiseElement = await smart$(browser, logicalName);
-          await elem.waitForDisplayed({ timeout: 5000 });
-          await elem.clearValue();
-          await elem.setValue(value);
-          console.log(`[Runner] Typed "${value}" into "${logicalName}"`);
+        // --- Type ---
+        else if (/I type/.test(line)) {
+          const match = line.match(/I type "(.+)" into "(.+)"/);
+          if (match) {
+            const [, value, logicalName] = match;
+            const elem: ChainablePromiseElement = await smart$(browser, logicalName, 'type');
+            await elem.clearValue();
+            await elem.setValue(value);
+            console.log(`[Runner] Typed "${value}" into "${logicalName}"`);
+          }
         }
-      }
 
-      // When I click "logical_name"
-      else if (line.startsWith('When I click')) {
-        const match = line.match(/When I click "(.+)"/);
-        if (match) {
-          const logicalName = match[1];
-          const elem: ChainablePromiseElement = await smart$(browser, logicalName);
-          await elem.waitForClickable({ timeout: 5000 });
-          await elem.click();
-          console.log(`[Runner] Clicked "${logicalName}"`);
+        // --- Click ---
+        else if (/I click/.test(line)) {
+          const match = line.match(/I click "(.+)"/);
+          if (match) {
+            const logicalName = match[1];
+            const elem: ChainablePromiseElement = await smart$(browser, logicalName, 'click');
+            await elem.click(); // smart$ đã waitForClickable
+            console.log(`[Runner] Clicked "${logicalName}"`);
+          }
         }
-      }
 
-      // Then I should see "text" in "logical_name"
-      else if (line.startsWith('Then I should see')) {
-        const match = line.match(/Then I should see "(.+)" in "(.+)"/);
-        if (match) {
-          const [, expected, logicalName] = match;
-          const elem: ChainablePromiseElement = await smart$(browser, logicalName);
-          await elem.waitForDisplayed({ timeout: 5000 });
-          const text = await elem.getText();
-          console.log(
-            `[Runner] Assert "${logicalName}" → "${text}" (expect: "${expected}")`
-          );
+        // --- Assert ---
+        else if (/I should see/.test(line)) {
+          const match = line.match(/I should see "(.+)" in "(.+)"/);
+          if (match) {
+            const [, expected, logicalName] = match;
+            const elem: ChainablePromiseElement = await smart$(browser, logicalName, 'assert');
+            await elem.waitForDisplayed({ timeout: 5000 });
+            const actual = await elem.getText();
+            console.log(`[Runner] Assert "${logicalName}" → "${actual}" (expect: "${expected}")`);
+          }
         }
+
+        // --- Unrecognized step ---
+        else {
+          console.warn(`[Runner] Step not recognized: ${line}`);
+        }
+      } catch (err) {
+        console.error(`[Runner] Error executing step "${line}":`, err);
+        break; // stop feature run on error
       }
     }
   }

@@ -9,6 +9,7 @@ export interface DomElementInfo {
   text?: string;
   placeholder?: string;
   ariaLabel?: string;
+  type?: string; // input type, e.g., text, submit
   attributes: Record<string, string>;
 }
 
@@ -24,8 +25,10 @@ export interface LocatorDecision {
   target: string; // logical name
   chosen: LocatorCandidate; // the selected locator
   alternatives: LocatorCandidate[]; // remaining candidates
+  action?: ActionType; // optional, action type for this decision
 }
 
+/** Metadata for logging and codegen */
 export interface LocatorMeta {
   logicalName: string;
   locator: string;
@@ -33,3 +36,6 @@ export interface LocatorMeta {
   score: number;
   strength: 'STRONG' | 'OK' | 'WEAK';
 }
+
+/** Action type for smart locator logic */
+export type ActionType = 'type' | 'click' | 'assert';

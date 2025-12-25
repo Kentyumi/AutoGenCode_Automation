@@ -3,5 +3,19 @@
   "password_input": "#password",
   "login_button": "//button",
   "submit_button": "#submit",
-  "full name": "#app"
+  "full name": "#app",
+  "assert:full name": "#userName",
+  "click:submit": "#submit",
+  "assert:products & services": "Products & Services",
+  "type:username_input": "#username",
+  "type:password_input": "#password",
+  "click:login_button": ".btn.btn-default.login-btn",
+  "click:menu_toggle": "e",
+  "click:menu_button": ".nav-link",
+  "click:logout_button": "Logout",
+  "click:hamburger_button": "Vouchers",
+  "https://evms-portal-uat.azurewebsites.net/|type:username_input": "#username",
+  "https://evms-portal-uat.azurewebsites.net/|type:password_input": "#password",
+  "https://evms-portal-uat.azurewebsites.net/|click:login_button": ".btn.btn-default.login-btn",
+  "https://evms-portal-uat.azurewebsites.net/Vouchers/EnquiryByIdNumber|click:hamburger_button": "Vouchers"
 }
