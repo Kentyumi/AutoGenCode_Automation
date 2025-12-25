@@ -1,9 +1,13 @@
+import type { Browser, ChainablePromiseElement } from 'webdriverio'
+
 import { decideLocator } from './decision-engine'
 import { generateCandidates } from './candidate-generator'
 import { getLocator, saveLocator, loadRegistry } from './registry'
-import type { Browser, ChainablePromiseElement } from 'webdriverio'
 import { DomElementInfo } from './types'
 import { logDecision } from './logger'
+
+import { resolveUIPattern } from './ui-pattern-engine'
+import { mapLogicalNameToPattern } from './ui-pattern-mapper'
 
 loadRegistry()
 
@@ -11,7 +15,11 @@ export type ActionType = 'type' | 'click' | 'assert'
 
 /* ---------------- utils ---------------- */
 function normalize(text?: string): string {
-  return (text || '').toLowerCase().replace(/[_\-]/g, ' ').replace(/\s+/g, ' ').trim()
+  return (text || '')
+    .toLowerCase()
+    .replace(/[_\-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function fuzzyIncludes(a: string, b: string): boolean {
@@ -34,9 +42,11 @@ export async function scanDom(browser: Browser): Promise<DomElementInfo[]> {
         'input, button, textarea, select, a, [role], [aria-label], [data-testid]'
       )
     )
+
     return elements.map(el => {
       const attrs: Record<string, string> = {}
       for (const attr of el.attributes) attrs[attr.name] = attr.value
+
       return {
         tag: el.tagName.toLowerCase(),
         id: el.id || undefined,
@@ -53,7 +63,7 @@ export async function scanDom(browser: Browser): Promise<DomElementInfo[]> {
 
 /* ---------------- action filtering ---------------- */
 function isTypeable(e: DomElementInfo) {
-  return e.tag === 'input' || e.tag === 'textarea' || e.attributes?.contenteditable === 'true'
+  return e.tag === 'input' || e.tag === 'textarea'
 }
 
 function isClickable(e: DomElementInfo) {
@@ -61,7 +71,6 @@ function isClickable(e: DomElementInfo) {
     e.tag === 'button' ||
     e.tag === 'a' ||
     e.attributes?.role === 'button' ||
-    e.attributes?.['aria-expanded'] !== undefined ||
     e.attributes?.['data-testid'] !== undefined
   )
 }
@@ -72,8 +81,7 @@ function filterByAction(dom: DomElementInfo[], action: ActionType) {
   return dom
 }
 
-/* ---------------- matching logic ---------------- */
-function matchElement(e: DomElementInfo, target: string, action: ActionType): boolean {
+function matchElement(e: DomElementInfo, target: string): boolean {
   const fields = [
     e.id,
     e.name,
@@ -86,70 +94,79 @@ function matchElement(e: DomElementInfo, target: string, action: ActionType): bo
     .filter(Boolean)
     .map(normalize)
 
-  // direct semantic match
-  if (fields.some(f => fuzzyIncludes(f, target))) return true
-
-  // hamburger/menu heuristic
-  if (action === 'click' && /(hamburger|hamberger|menu|nav|toggle)/.test(target)) {
-    return !!(
-      e.ariaLabel?.match(/menu|navigation|toggle/i) ||
-      e.className?.match(/menu|hamburger|nav|toggle/i) ||
-      e.attributes?.['data-testid']?.match(/menu|hamburger/i)
-    )
-  }
-
-  return false
+  return fields.some(f => fuzzyIncludes(f, target))
 }
 
-/* ---------------- smart$ core ---------------- */
+/* ===================== smart$ ===================== */
 export async function smart$(
   browser: Browser,
   logicalName: string,
   action?: ActionType
 ): Promise<ChainablePromiseElement> {
+
   const resolvedAction = action ?? inferAction(logicalName)
   const pageUrl = await browser.getUrl()
   const cacheKey = `${pageUrl}|${resolvedAction}:${logicalName}`
 
-  // ---- cache ----
+  /* ---------- 1. CACHE ---------- */
   const cached = getLocator(cacheKey)
-  if (cached) {
-    console.log(`[LocatorBrain] Using cached (${resolvedAction}) → ${cached}`)
-    const el = await browser.$(cached)
-    await el.waitForExist({ timeout: 5000 })
-    if (resolvedAction === 'click') {
-      await el.waitForDisplayed({ timeout: 5000 })
-      await el.waitForClickable({ timeout: 5000 })
+  if (typeof cached === 'string') {
+    try {
+      const el = browser.$(cached)
+
+      await el.waitForExist({ timeout: 3000 })
+      if (resolvedAction === 'click') {
+        await el.waitForClickable({ timeout: 3000 })
+      }
+
+      return el
+    } catch {
+      console.warn('[LocatorBrain] Cached locator failed')
     }
-    return el
   }
 
-  // ---- scan ----
+  /* ---------- 2. UI PATTERN ENGINE ---------- */
+  if (resolvedAction === 'click') {
+    const pattern = mapLogicalNameToPattern(logicalName)
+    if (pattern) {
+      const el = await resolveUIPattern(browser, pattern)
+      if (el) return el
+    }
+  }
+
+  /* ---------- 3. SEMANTIC ---------- */
   const dom = await scanDom(browser)
   const scoped = filterByAction(dom, resolvedAction)
   const target = normalize(logicalName)
 
-  const matched = scoped.find(e => matchElement(e, target, resolvedAction))
-  if (!matched) {
-    console.error('[LocatorBrain] MATCH FAILED', {
-      logicalName,
-      action: resolvedAction,
-      scanned: scoped.length
-    })
-    throw new Error(`LocatorBrain: cannot find "${logicalName}" for action "${resolvedAction}"`)
+  const matched = scoped.filter(e => matchElement(e, target))
+
+  if (matched.length === 0) {
+    const fallback = await browser.$$(
+      'button, [role="button"], svg, i, div'
+    )
+
+    for (const el of fallback) {
+      if (await el.isClickable()) {
+        return el
+      }
+    }
+
+    throw new Error(`LocatorBrain: cannot resolve "${logicalName}"`)
   }
 
-  // ---- decision ----
-  const candidates = generateCandidates(matched)
+  /* ---------- 4. DECISION ---------- */
+  const candidates = matched.flatMap(m => generateCandidates(m))
   const decision = decideLocator(logicalName, candidates, resolvedAction)
+
   saveLocator(cacheKey, decision.chosen.value)
   logDecision(decision)
 
-  // ---- runtime safety ----
-  const elem = await browser.$(decision.chosen.value)
+  /* ---------- 5. FINAL ---------- */
+  const elem = browser.$(decision.chosen.value)
+
   await elem.waitForExist({ timeout: 5000 })
   if (resolvedAction === 'click') {
-    await elem.waitForDisplayed({ timeout: 5000 })
     await elem.waitForClickable({ timeout: 5000 })
   }
 

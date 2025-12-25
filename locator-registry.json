@@ -17,5 +17,5 @@
   "https://evms-portal-uat.azurewebsites.net/|type:username_input": "#username",
   "https://evms-portal-uat.azurewebsites.net/|type:password_input": "#password",
   "https://evms-portal-uat.azurewebsites.net/|click:login_button": ".btn.btn-default.login-btn",
-  "https://evms-portal-uat.azurewebsites.net/Vouchers/EnquiryByIdNumber|click:hamburger_button": "Vouchers"
+  "https://evms-portal-uat.azurewebsites.net/Vouchers/EnquiryByIdNumber|click:hamburger_button": "Bank Credit"
 }

@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/Kentyumi/AutoGenCode_Automation#readme",
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@types/jquery": "^3.5.33",
     "@types/node": "^25.0.3",
     "ts-node": "^10.9.2",

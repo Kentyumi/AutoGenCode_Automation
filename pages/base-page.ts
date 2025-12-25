@@ -1,5 +1,5 @@
 import { smart$ } from '../locator-brain/smart-element';
-import type { Browser, ChainablePromiseElement } from 'webdriverio';
+import type { Browser } from 'webdriverio';
 
 export class BasePage {
   protected browser: Browser;
@@ -8,7 +8,7 @@ export class BasePage {
     this.browser = browser;
   }
 
-  private async resolve(logicalName: string): Promise<ChainablePromiseElement> {
+  private async resolve(logicalName: string): Promise<WebdriverIO.Element> {
     const elem = await smart$(this.browser, logicalName);
 
     // 🔥 auto scroll

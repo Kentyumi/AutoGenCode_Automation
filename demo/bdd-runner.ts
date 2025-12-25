@@ -1,7 +1,7 @@
 // demo/bdd-runner.ts
 import fs from 'fs';
 import path from 'path';
-import { remote, Browser, ChainablePromiseElement } from 'webdriverio';
+import { remote, Browser } from 'webdriverio';
 import { smart$, ActionType } from '../locator-brain/smart-element';
 import { BASE_URL, TCS_DIR } from './democonfig';
 
@@ -53,7 +53,7 @@ async function run() {
           const match = line.match(/I type "(.+)" into "(.+)"/);
           if (match) {
             const [, value, logicalName] = match;
-            const elem: ChainablePromiseElement = await smart$(browser, logicalName, 'type');
+            const elem: WebdriverIO.Element = await smart$(browser, logicalName, 'type');
             await elem.clearValue();
             await elem.setValue(value);
             console.log(`[Runner] Typed "${value}" into "${logicalName}"`);
@@ -65,7 +65,7 @@ async function run() {
           const match = line.match(/I click "(.+)"/);
           if (match) {
             const logicalName = match[1];
-            const elem: ChainablePromiseElement = await smart$(browser, logicalName, 'click');
+            const elem: WebdriverIO.Element = await smart$(browser, logicalName, 'click');
             await elem.click(); // smart$ đã waitForClickable
             console.log(`[Runner] Clicked "${logicalName}"`);
           }
@@ -76,7 +76,7 @@ async function run() {
           const match = line.match(/I should see "(.+)" in "(.+)"/);
           if (match) {
             const [, expected, logicalName] = match;
-            const elem: ChainablePromiseElement = await smart$(browser, logicalName, 'assert');
+            const elem: WebdriverIO.Element = await smart$(browser, logicalName, 'assert');
             await elem.waitForDisplayed({ timeout: 5000 });
             const actual = await elem.getText();
             console.log(`[Runner] Assert "${logicalName}" → "${actual}" (expect: "${expected}")`);
